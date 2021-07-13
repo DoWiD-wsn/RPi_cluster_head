@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 ### Removed
 
+## [0.2.0] - 2020-08-24
+### Changed
+- Reduced message overhead for shorted messages
+
 ## [0.1.1] - 2020-08-05
 ### Added
 - Added logging functionality for debug and documentation purposes

@@ -9,13 +9,12 @@
 #
 # @file     rpi_cluster_head.py
 # @author   Dominik Widhalm
-# @version  0.1.1
-# @date     2020/08/05
+# @version  0.2.0
+# @date     2020/08/24
 #####
 
 
 ##### LIBRARIES #####
-# Import the sleep function
 from time import sleep
 # For byte array hex output
 import binascii
@@ -47,7 +46,7 @@ DB_CON_USER         = "USER"
 DB_CON_PASS         = "PASS"
 DB_CON_BASE         = "wsn_testbed"
 # database insert template
-DB_INSERT_VALUE = ("INSERT INTO sensordata (snid, sntime, dbtime, type, value, sreg, notes) VALUES (%s, %s, %s, %s, %s, %s, %s)")
+DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, type, value, sreg, notes) VALUES (%s, %s, %s, %s, %s, %s, %s)")
 
 ### logging level
 # DEBUG -> INFO -> WARNING -> ERROR -> CRITICAL
@@ -85,8 +84,9 @@ signal.signal(signal.SIGINT, sigint_callback)
 
 # Prepare logging module
 logging.basicConfig(filename=LOG_FILE, filemode='a', format="%(levelname)-8s %(asctime)s -- %(message)s", datefmt="%Y-%m-%d %H:%M:%S",level=LOG_LEVEL)
-# Do not use the xbee logger
+# Do not use the xbee or mysql logger
 logging.getLogger("digi.xbee").setLevel(logging.CRITICAL)
+logging.getLogger("mysql").setLevel(logging.CRITICAL)
 # Write starting-message to log file
 logging.info("===== STARTUP =====")
  
@@ -125,7 +125,7 @@ while (xbee_connect != 1):
         xbee.open()
     except Exception as e:
         # So far it's only a warning
-        logging.warning("Connection to xbee failed! (try %s of %s)",(cnt_A+1),TIMEOUT_A, exc_info=True)
+        logging.warning("Connection to xbee failed! (try %s of %s)",(cnt_A+1),TIMEOUT_A, exc_info=False)
         # Wait some time (DELAY_A)
         sleep(DELAY_A)
     else:
@@ -166,7 +166,7 @@ while (db_connect != 1):
         db_con = mysql.connector.connect(host=DB_CON_HOST, user=DB_CON_USER, password=DB_CON_PASS, database=DB_CON_BASE)
     except Exception as e:
         # So far it's only a warning
-        logging.warning("Connection to the DB failed! (try %s of %s)",(cnt_B+1),TIMEOUT_B, exc_info=True)
+        logging.warning("Connection to the DB failed! (try %s of %s)",(cnt_B+1),TIMEOUT_B, exc_info=False)
         # Wait some time (DELAY_B)
         sleep(DELAY_B)
     else:
@@ -201,13 +201,16 @@ while (terminate != 1):
         msg = xbee.read_data()
     except Exception as e:
         # So far it's only a warning
-        logging.warning("Problem receiving a message!", exc_info=True)
+        logging.warning("Problem receiving a message!", exc_info=False)
     
     # Check if there was a message available
     if msg is not None:
         ### Read message content ###
         # Source address (64-bit MAC address)
         src    = msg.remote_device._64bit_addr
+        # Sensor Node ID
+        snid   = bytes(src.address[4:8]).hex().upper()
+        
         # Receive timestamp (need to use UTC for Grafana)
         tstamp = datetime.utcfromtimestamp(msg.timestamp)
         # Broadcast flag (true / false)
@@ -215,19 +218,17 @@ while (terminate != 1):
         # Payload length
         m_size = len(msg.data)
         
-        # Check message payload size (should be 14 bytes)
-        if m_size == 14:
+        # Check message payload size (should be 10 bytes)
+        if m_size == 10:
             ### SEN-MSG data ###
-            # 0..3  -> Sensor Node ID
-            snid      = bytes(msg.data[0:4]).hex().upper()
-            # 4..7  -> Sensor Node "timestamp"
-            sntime    = int.from_bytes(msg.data[4:8], byteorder='big', signed=False)
-            # 8     -> Measurement type
-            m_type    = msg.data[8]
-            # 9..12 -> Measurement value (float)
-            [m_value] = struct.unpack('f', msg.data[9:13])
-            # 13    -> SREG value (status register)
-            sreg      = msg.data[13]
+            # 0..3  -> Sensor Node "timestamp"
+            sntime    = int.from_bytes(msg.data[0:4], byteorder='big', signed=False)
+            # 4     -> Measurement type
+            m_type    = msg.data[4]
+            # 5..8 -> Measurement value (float)
+            [m_value] = struct.unpack('f', msg.data[5:9])
+            # 9    -> SREG value (status register)
+            sreg      = msg.data[9]
             
             # Log received data
             logging.info("Got a message from %s at %s (UTC) with SNID: %s",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'),sntime)
@@ -252,7 +253,7 @@ while (terminate != 1):
                     db_con.commit()
                 except Exception as e:
                     # So far it's only a warning
-                    logging.warning("Problem writing to the DB", exc_info=True)
+                    logging.warning("Problem writing to the DB", exc_info=False)
                     # Try to re-connect
                     if db_con.is_connected():
                         db_cur.close()
@@ -293,14 +294,14 @@ while (terminate != 1):
                     db_con = mysql.connector.connect(host=DB_CON_HOST, user=DB_CON_USER, password=DB_CON_PASS, database=DB_CON_BASE)
                 except Exception as e:
                     # So far it's only a warning
-                    logging.warning("Could not re-connect to the DB (try %d / %d)",(cnt_D+1),TIMEOUT_D, exc_info=True)
+                    logging.warning("Could not re-connect to the DB (try %d / %d)",(cnt_D+1),TIMEOUT_D, exc_info=False)
                     # Wait some time (DELAY_D)
                     sleep(DELAY_D)
                 else:
                     # Check if DB is really connected
                     if db_con.is_connected():
                         # Log message (note)
-                        logging.info("Re-connected to the DB!")
+                        logging.warning("Re-connected to the DB!")
                         # Get an cursor for the DB
                         db_cur = db_con.cursor()
                         # Set connection status to 1
@@ -315,7 +316,7 @@ while (terminate != 1):
                             db_con.commit()
                         except Exception as e:
                             # So far it's only a warning
-                            logging.warning("Problem writing to DB", exc_info=True)
+                            logging.warning("Problem writing to DB", exc_info=False)
                             # Try to re-connect
                             if db_con.is_connected():
                                 db_cur.close()
@@ -371,7 +372,7 @@ while (terminate != 1):
                     xbee.open()
                 except Exception as e:
                     # So far it's only a warning
-                    logging.warning("Could not re-connect to xbee device (try %d / %d)",(cnt_C+1),TIMEOUT_C, exc_info=True)
+                    logging.warning("Could not re-connect to xbee device (try %d / %d)",(cnt_C+1),TIMEOUT_C, exc_info=False)
                     # Wait some time (DELAY_C)
                     sleep(DELAY_C)
                 else:
