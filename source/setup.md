@@ -56,8 +56,6 @@ In the following links with further or complementary information are listed.
 
 #### Hardware ####
 
-Radios:
-
 - [Xbee3](https://www.digi.com/products/browse/xbee3)
   * [XCTU - Next Generation Configuration Platform](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/xctu)
   * XBee firmwares:
