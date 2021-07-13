@@ -11,6 +11,8 @@ The cluster head software is basically a Python script the takes over ZigBee pac
 └── source              : Python sources
 ```
 
+The setup and prerequisites for the Python script running on the cluster head are described in [source/setup.md](source/setup.md).
+
 
 ## Built with
 
