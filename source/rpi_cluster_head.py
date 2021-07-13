@@ -5,12 +5,14 @@
 # a ZigBee-based wireless sensor network. The script connects serially
 # to an Xbee 3 module, continuously receives and evaluates messages
 # received and stores the data of correct messages in a remote database.
-# Additionally, specified information is written into a log file.
+# The current message format allow the reception of either float, uint
+# or sint values depending on the sensor value type. Additionally,
+# specified information is written into a log file.
 #
 # @file     rpi_cluster_head.py
 # @author   Dominik Widhalm
-# @version  0.2.0
-# @date     2020/08/24
+# @version  0.3.0
+# @date     2020/08/31
 #####
 
 
@@ -225,10 +227,19 @@ while (terminate != 1):
             sntime    = int.from_bytes(msg.data[0:4], byteorder='big', signed=False)
             # 4     -> Measurement type
             m_type    = msg.data[4]
-            # 5..8 -> Measurement value (float)
-            [m_value] = struct.unpack('f', msg.data[5:9])
             # 9    -> SREG value (status register)
             sreg      = msg.data[9]
+            # 5..8 -> Measurement value -> depends on m_type
+            m_value   = 0
+            if ((m_type == 0x11) or (m_type == 0x12) or (m_type == 0x13) or (m_type == 0x21)):
+                # float
+                [m_value] = struct.unpack('f', msg.data[5:9])
+            elif (m_type == 0x14):
+                # sint
+                m_value   = int.from_bytes(msg.data[5:9], byteorder='big', signed=True)
+            else:
+                # uint
+                m_value   = int.from_bytes(msg.data[5:9], byteorder='big', signed=False)
             
             # Log received data
             logging.info("Got a message from %s at %s (UTC) with SNID: %s",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'),sntime)

@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 ### Removed
 
+## [0.3.0] - 2020-08-31
+### Changed
+- Changed message format (structure) to allow the transmission of either float, uint or sint values depending on the type.
+
 ## [0.2.0] - 2020-08-24
 ### Changed
 - Reduced message overhead for shorted messages
