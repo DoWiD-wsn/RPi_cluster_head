@@ -7,3 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 ### Changed
 ### Removed
+
+## [0.1.0] - 2020-08-04
+### Added
+- Initial cluster head application able to receive messages and stores the information in a remote database

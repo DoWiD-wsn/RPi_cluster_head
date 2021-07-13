@@ -35,6 +35,12 @@ Additionally, links to further information are given.
 
 However, if you use the Xbee for the first time and want to configure fresh modules, it is advisable to use Digi's [XCTU](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/xctu) tool (available for Windows, Linux, Mac).
 
+## Program Execution
+
+The cluster head software (i.e., Python script) is divided in four stages with different main objectives, each.
+The general flow of program execution is as follows:  
+![Main Schematic (/media/flowchart/cluster_head.svg)](../media/flowchart/cluster_head.svg)
+
 
 ## Xbee3 Zigbee ##
 
