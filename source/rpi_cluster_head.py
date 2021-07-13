@@ -5,13 +5,16 @@
 # a ZigBee-based wireless sensor network. The script connects serially
 # to an Xbee 3 module, continuously receives and evaluates messages
 # received and stores the data of correct messages in a remote database.
-# The current message format allow the reception of only float sensor 
-# values. Additionally, specified information is written into a log file.
+# The current version supports messages of variable length with either
+# 16-bit integer or 16-bit fixed-point values (see measurement types as 
+# specified below). Additionally, specified information is written into
+# a log file.
+# This is the version used in the ASN(x)-based WSN testbed.
 #
 # @file     rpi_cluster_head.py
 # @author   Dominik Widhalm
-# @version  0.3.1
-# @date     2020/08/31
+# @version  1.0.0
+# @date     2021/04/26
 #####
 
 
@@ -48,12 +51,40 @@ DB_CON_USER         = "USER"
 DB_CON_PASS         = "PASS"
 DB_CON_BASE         = "wsn_testbed"
 # database insert template
-DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, type, value, sreg, notes) VALUES (%s, %s, %s, %s, %s, %s, %s)")
+DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, type, value, notes) VALUES (%s, %s, %s, %s, %s, %s)")
 
 ### logging level
 # DEBUG -> INFO -> WARNING -> ERROR -> CRITICAL
 LOG_LEVEL           = logging.INFO
 LOG_FILE            = "cluster_head.log"
+
+### measurement types (integer vs. fixed-point)
+MEAS_UINT = {
+      0: 'SEN_MSG_TYPE_IGNORE',
+      1: 'SEN_MSG_TYPE_INCIDENTS',
+      2: 'SEN_MSG_TYPE_REBOOT',
+     48: 'SEN_MSG_TYPE_LUMI_RES',
+    240: 'SEN_MSG_TYPE_CHK_RES',
+    241: 'SEN_MSG_TYPE_CHK_ADC',
+    242: 'SEN_MSG_TYPE_CHK_UART',
+    243: 'SEN_MSG_TYPE_CHK_RUNTIME'
+}
+MEAS_FLOAT = {
+     16: 'SEN_MSG_TYPE_TEMP_RES',
+     17: 'SEN_MSG_TYPE_TEMP_AIR',
+     18: 'SEN_MSG_TYPE_TEMP_SOIL',
+     19: 'SEN_MSG_TYPE_TEMP_MCU',
+     20: 'SEN_MSG_TYPE_TEMP_RADIO',
+     21: 'SEN_MSG_TYPE_TEMP_SURFACE',
+     22: 'SEN_MSG_TYPE_TEMP_BOARD',
+     32: 'SEN_MSG_TYPE_HUMID_RES',
+     33: 'SEN_MSG_TYPE_HUMID_AIR',
+     34: 'SEN_MSG_TYPE_HUMID_SOIL',
+    224: 'SEN_MSG_TYPE_VSS_RES',
+    225: 'SEN_MSG_TYPE_VSS_BAT',
+    226: 'SEN_MSG_TYPE_VSS_MCU',
+    227: 'SEN_MSG_TYPE_VSS_RADIO'
+}
 
 # timeouts [tries]
 TIMEOUT_A           = 100                   # Timeout A -- xbee initial connect
@@ -78,6 +109,16 @@ def sigint_callback(sig, frame):
     global terminate
     # Set terminate to 1
     terminate = 1
+
+##### FUNCTIONS ########################
+def fixed16_to_float(value, f_bits):
+    # Convert fixed16 to float
+    tmp = (float(value & 0x7FFF) / float(1 << f_bits))
+    # Check sign of input
+    if(value & 0x8000):
+        tmp *= -1
+    # Return the float value
+    return tmp
 
 
 ##### MAIN #####
@@ -220,21 +261,55 @@ while (terminate != 1):
         # Payload length
         m_size = len(msg.data)
         
-        # Check message payload size (should be 10 bytes)
-        if m_size == 10:
+        # Check message payload size (should be >3 bytes)
+        if m_size > 3:
             ### SEN-MSG data ###
-            # 0..3  -> Sensor Node "timestamp"
-            sntime    = int.from_bytes(msg.data[0:4], byteorder='big', signed=False)
-            # 4     -> Measurement type
-            m_type    = msg.data[4]
-            # 9    -> SREG value (status register)
-            sreg      = msg.data[9]
-            # 5..8 -> Measurement value -> depends on m_type
-            [m_value] = struct.unpack('f', msg.data[5:9])
+            # 0..1  -> Sensor Node "timestamp"
+            sntime    = int.from_bytes(msg.data[0:2], byteorder='little', signed=False)
+            # 3     -> Number of measurements
+            ms_cnt    = int(msg.data[2])
             
             # Log received data
-            logging.info("Got a message from %s at %s (UTC) with SNID: %s",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'),sntime)
-            logging.info("=> ID: " + str(snid) + ", TIME: " + str(sntime) + ", TYPE: " + str(hex(m_type).upper().replace('X', 'x')) + ", VALUE: " + str(m_value) + ", SREG : " + str(hex(sreg).upper().replace('X', 'x')))
+            logging.info("Got a message from %s at %s (UTC) with %d sensor values (%d bytes; sntime: %d)",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'),ms_cnt,m_size,sntime)
+            
+            # Iterate over all packed sensor values
+            for i in range(ms_cnt):
+                # -> Measurement type
+                m_type = msg.data[(i*3)+3]
+                # -> Measurement value -> depends on m_type
+                m_value = int.from_bytes(msg.data[(i*3)+4:(i*3)+6], byteorder='little', signed=False)
+                # Check the given value
+                if m_type in MEAS_FLOAT:
+                    # Convert fixed point to floating point
+                    m_value = fixed16_to_float(m_value, 6)
+                # Check if valid data are received
+                if m_type != 0:
+                    # Insert data into DB
+                    if db_con.is_connected():
+                        try:
+                            # Try execute DB insert
+                            db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, m_type, m_value, ""))
+                            # Commit data to the DB
+                            db_con.commit()
+                        except Exception as e:
+                            # So far it's only a warning
+                            logging.warning("Problem writing to the DB", exc_info=False)
+                            # Try to re-connect
+                            if db_con.is_connected():
+                                db_cur.close()
+                                db_con.close()
+                                break
+                        else:
+                            # Log successful DB write
+                            logging.info("Added new data to DB with row_id=%d",db_cur.lastrowid)
+                    else:
+                        # Looks like we've lost the connection to the DB (or need a re-connect)
+                        db_connect = 0
+                        db_con = None
+                        db_cur = None
+                        # Log incident
+                        logging.warning("Lost connection to the DB")
+                        break
             
             # Check if this sender already sent a message (noted by its "timestamp")
             if snid in sender:
@@ -245,34 +320,9 @@ while (terminate != 1):
             # Update/add current "sntime" to the dictionary
             sender[snid] = sntime
             
-            # Check if the DB connection is still alive
-            if db_con.is_connected():
-                # Insert data into DB
-                try:
-                    # Try execute DB insert
-                    db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, m_type, m_value, sreg, ""))
-                    # Commit data to the DB
-                    db_con.commit()
-                except Exception as e:
-                    # So far it's only a warning
-                    logging.warning("Problem writing to the DB", exc_info=False)
-                    # Try to re-connect
-                    if db_con.is_connected():
-                        db_cur.close()
-                        db_con.close()
-                else:
-                    # Log successful DB write
-                    logging.info("Added new data to DB with row_id=%d",db_cur.lastrowid)
-                    # Continue with next message
-                    continue
-            
-            # Looks like we've lost the connection to the DB (or need a re-connect)
-            db_connect = 0
-            db_con = None
-            db_cur = None
-            # Log incident
-            logging.warning("Lost connection to the DB")
-            
+            # Check if still connected to DB
+            if db_connect:
+                continue
             
             ##### STAGE 3.2 #####
             #

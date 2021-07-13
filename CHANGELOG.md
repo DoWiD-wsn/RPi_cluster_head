@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 ### Removed
 
+## [1.0.0] - 2021-04-26
+### Changed
+- Changed message format to ASN(x) single message format that allows to transmit all sensor data in one message augmented with self-diagnostic data.
+- Transmit 16-bit integer and float as 16-bit fixed-point values.
+
 ## [0.3.1] - 2020-08-31
 ### Changed
 - Changed message format (structure) to transmit all sensor values as float.
