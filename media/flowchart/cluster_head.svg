@@ -9,9 +9,9 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="464.19421mm"
-   height="223.31194mm"
-   viewBox="0 0 464.19421 223.31194"
+   width="468.194mm"
+   height="227.31201mm"
+   viewBox="0 0 468.194 227.31202"
    version="1.1"
    id="svg8"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
@@ -1386,8 +1386,8 @@
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="0.54099824"
-     inkscape:cx="670.95038"
-     inkscape:cy="343.6465"
+     inkscape:cx="308.82247"
+     inkscape:cy="343.81186"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -1419,7 +1419,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -1427,16 +1427,16 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(14.252483,22.500002)">
+     transform="translate(16.252483,24.500067)">
     <rect
-       y="-22.5"
-       x="-14.252478"
-       height="223.31194"
-       width="464.19418"
+       y="-24.500067"
+       x="-16.252483"
+       height="227.31201"
+       width="468.194"
        id="rect2368"
-       style="opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.00000024;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1.00000016, 1.00000016;stroke-dashoffset:0;stroke-opacity:1"
+       style="opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.00000024;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1.00000019, 1.00000019;stroke-dashoffset:0;stroke-opacity:1"
        rx="10"
-       ry="10" />
+       ry="10.000001" />
     <rect
        y="80.75"
        x="10.250013"
