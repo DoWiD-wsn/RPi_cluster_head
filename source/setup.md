@@ -35,11 +35,30 @@ Additionally, links to further information are given.
 
 However, if you use the Xbee for the first time and want to configure fresh modules, it is advisable to use Digi's [XCTU](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/xctu) tool (available for Windows, Linux, Mac).
 
+
 ## Program Execution
 
 The cluster head software (i.e., Python script) is divided in four stages with different main objectives, each.
 The general flow of program execution is as follows:  
 ![Main Schematic (/media/flowchart/cluster_head.svg)](../media/flowchart/cluster_head.svg)
+
+
+## Remote Access ##
+
+In our case, the cluster head software is running on a Raspberry Pi that is accessed remotely, that is, via SSH.
+To have the Python script continue to run after ending the SSH session, we use the terminal multiplexer program [`tmux`](https://github.com/tmux/tmux/wiki).
+It can be easily installed with:  
+    `sudo apt install tmux`
+
+To initially start the cluster head script, log into the RPi via SSH and start the terminal multiplexer with:  
+    `tmux`  
+Then navigate to the directory where the script is located and start it in the usual manner, e.g., with:  
+    `./rpi_cluster_head.py`  
+You can safely close the SSH session now.
+
+Whenever you want to return to the session, just log into the RPi again via SSH and attach to the previous `tmux` session with:  
+    `tmux attach`  
+That's it ;)
 
 
 ## Xbee3 Zigbee ##

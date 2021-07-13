@@ -1,7 +1,10 @@
 # RPi-based Cluster Head
 
 The Raspberry Pi-based cluster head is a gateway used in our wireless sensor network testbed.
-The cluster head software is basically a Python script the takes over ZigBee packets from the sensor network (received by an Xbee 3 module), processes the information and stores them in a remote MySQL database.
+The cluster head software is basically a Python script the takes over ZigBee packets from the sensor network (WSN), received by an Xbee 3 module, processes the information and stores them in a remote MySQL database.
+
+The cluster head used in our WSN is based on a Raspberry Pi 3 model B (shortly called RPi) equipped with a 32 GB microSD card running a recent version of [Raspberry Pi OS](https://www.raspberrypi.org/software/) (previously called Raspbian) and a Digi Xbee 3 radio transceiver connected via an [Waveshare Xbee USB adapter](https://www.waveshare.com/xbee-usb-adapter.htm).
+However, the scripts also work on any other system running a Debian/Ubuntu OS and having the Xbee connected via a serial interface.
 
 
 ## Contents
