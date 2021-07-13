@@ -5,11 +5,12 @@
 # a ZigBee-based wireless sensor network. The script connects serially
 # to an Xbee 3 module, continuously receives and evaluates messages
 # received and stores the data of correct messages in a remote database.
+# Additionally, specified information is written into a log file.
 #
 # @file     rpi_cluster_head.py
 # @author   Dominik Widhalm
-# @version  0.1.0
-# @date     2020/08/04
+# @version  0.1.1
+# @date     2020/08/05
 #####
 
 
@@ -26,7 +27,9 @@ import signal
 from datetime import datetime
 # To convert bytearray to float
 import struct
-# To connect to MySQL DB (including possible error codes)
+# For logging functionality
+import logging
+# To connect to MySQL DB
 import mysql.connector
 from mysql.connector import errorcode
 # Import the Xbee library
@@ -46,10 +49,10 @@ DB_CON_BASE         = "wsn_testbed"
 # database insert template
 DB_INSERT_VALUE = ("INSERT INTO sensordata (snid, sntime, dbtime, type, value, sreg, notes) VALUES (%s, %s, %s, %s, %s, %s, %s)")
 
-### LOG FILES ###
-ERROR_LOG_FILE      = "./error.log"
-WARNING_LOG_FILE    = "./warning.log"
-NOTE_LOG_FILE       = "./note.log"
+### logging level
+# DEBUG -> INFO -> WARNING -> ERROR -> CRITICAL
+LOG_LEVEL           = logging.INFO
+LOG_FILE            = "cluster_head.log"
 
 # timeouts [tries]
 TIMEOUT_A           = 100                   # Timeout A -- xbee initial connect
@@ -80,19 +83,12 @@ def sigint_callback(sig, frame):
 # Add CRTL-C callback (needed for program termination)
 signal.signal(signal.SIGINT, sigint_callback)
 
-# Open log files
-try:
-    error_f = open(ERROR_LOG_FILE, "a")
-    warning_f = open(WARNING_LOG_FILE, "a")
-    note_f = open(NOTE_LOG_FILE, "a")
-except:
-    # Couldn't open log files ... not good
-    sys.exit()
-else:
-    # Write starting-message to log file
-    error_f.write("=== STARTUP - " + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " ===\n")
-    warning_f.write("=== STARTUP - " + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " ===\n")
-    note_f.write("=== STARTUP - " + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " ===\n")
+# Prepare logging module
+logging.basicConfig(filename=LOG_FILE, filemode='a', format="%(levelname)-8s %(asctime)s -- %(message)s", datefmt="%Y-%m-%d %H:%M:%S",level=LOG_LEVEL)
+# Do not use the xbee logger
+logging.getLogger("digi.xbee").setLevel(logging.CRITICAL)
+# Write starting-message to log file
+logging.info("===== STARTUP =====")
  
 # Initial timeout counter
 cnt_A = 0
@@ -108,6 +104,7 @@ db_con = None
 db_cur = None
 sender = dict()
 
+
 ##### STAGE 1 #####
 #
 # Initial connect to xbee
@@ -117,42 +114,32 @@ while (xbee_connect != 1):
     # Check if timeout has been reached
     if (cnt_A >= TIMEOUT_A):
         # That's a big problem
-        error_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not connect to xbee device at all!\n")
-        # Check if log files are still open
-        if error_f.closed:
-            # Close log file
-            error_f.close()
-        if warning_f.closed:
-            # Close log file
-            warning_f.close()
-        if note_f.closed:
-            # Close log file
-            note_f.close()
+        logging.error("Could not connect to xbee device!")
         # Terminate
         sys.exit()
     # Try to open a connection to xbee
     try:
         # Instantiate a generic xbee device
-        xbee = XBeeDevice(XBEE_SERIAL_DEV, 9600)
+        xbee = XBeeDevice(XBEE_SERIAL_DEV, 115200)
         # Open the connection with the device
         xbee.open()
-    except:
+    except Exception as e:
         # So far it's only a warning
-        warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not connect to xbee device (try " + str(cnt_A+1) + "/" + str(TIMEOUT_A) + ") \"" + sys.exc_info()[0] + "\"\n")
+        logging.warning("Connection to xbee failed! (try %s of %s)",(cnt_A+1),TIMEOUT_A, exc_info=True)
         # Wait some time (DELAY_A)
         sleep(DELAY_A)
     else:
         # Check if really connected
         if xbee is not None and xbee.is_open():
             # Log message (note)
-            note_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Connected to xbee module!\n")
+            logging.info("Connected to xbee module!")
             # Set connection status to 1
             xbee_connect = 1
             # Reset timeout counter
             cnt_A = 0
         else:
             # So far it's only a warning
-            warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not connect to xbee device (try " + str(cnt_A+1) + "/" + str(TIMEOUT_A) + ") \"" + sys.exc_info()[0] + "\"\n")
+            logging.warning("Connection to xbee failed! (try %s of %s)",(cnt_A+1),TIMEOUT_A)
             # Wait some time (DELAY_A)
             sleep(DELAY_A)
 
@@ -170,33 +157,23 @@ while (db_connect != 1):
             # Close the xbee connection
             xbee.close()
         # That's a big problem
-        error_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not connect to DB at all!\n")
-        # Check if log files are still open
-        if error_f.closed:
-            # Close log file
-            error_f.close()
-        if warning_f.closed:
-            # Close log file
-            warning_f.close()
-        if note_f.closed:
-            # Close log file
-            note_f.close()
+        logging.error("Could not connect to DB!")
         # Terminate
         sys.exit()
     # Try to open a connection to DB
     try:
         # Open a connection to the MySQL database
         db_con = mysql.connector.connect(host=DB_CON_HOST, user=DB_CON_USER, password=DB_CON_PASS, database=DB_CON_BASE)
-    except:
+    except Exception as e:
         # So far it's only a warning
-        warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not connect to the DB (try " + str(cnt_B+1) + "/" + str(TIMEOUT_B) + ") \"" + sys.exc_info()[0] + "\"\n")
+        logging.warning("Connection to the DB failed! (try %s of %s)",(cnt_B+1),TIMEOUT_B, exc_info=True)
         # Wait some time (DELAY_B)
         sleep(DELAY_B)
     else:
         # Check if DB is really connected
         if db_con.is_connected():
             # Log message (note)
-            note_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Connected to the DB!\n")
+            logging.info("Connected to the DB!")
             # Get an cursor for the DB
             db_cur = db_con.cursor()
             # Set connection status to 1
@@ -205,7 +182,7 @@ while (db_connect != 1):
             cnt_B = 0
         else:
             # So far it's only a warning
-            warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not connect to the DB (try " + str(cnt_B+1) + "/" + str(TIMEOUT_B) + ") \"" + sys.exc_info()[0] + "\"\n")
+            logging.warning("Connection to the DB failed! (try %s of %s)",(cnt_B+1),TIMEOUT_B)
             # Wait some time (DELAY_B)
             sleep(DELAY_B)
 
@@ -222,9 +199,9 @@ while (terminate != 1):
         msg = None
         # Try to read a message
         msg = xbee.read_data()
-    except:
+    except Exception as e:
         # So far it's only a warning
-        warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Problem receiving a message \"" + sys.exc_info()[0] + "\"\n")
+        logging.warning("Problem receiving a message!", exc_info=True)
     
     # Check if there was a message available
     if msg is not None:
@@ -253,19 +230,15 @@ while (terminate != 1):
             sreg      = msg.data[13]
             
             # Log received data
-            note_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Got a message from " + str(src) + " at " + str(tstamp.strftime('%Y-%m-%d %H:%M:%S')) + "\n")
-            note_f.write("                    ID   : " + str(snid) + "\n")
-            note_f.write("                    TIME : " + str(sntime) + "\n")
-            note_f.write("                    TYPE : " + str(hex(m_type).upper().replace('X', 'x')) + "\n")
-            note_f.write("                    VALUE: " + str(m_value) + "\n")
-            note_f.write("                    SREG : " + str(hex(sreg).upper().replace('X', 'x')) + "\n")
+            logging.info("Got a message from %s at %s (UTC) with SNID: %s",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'),sntime)
+            logging.info("=> ID: " + str(snid) + ", TIME: " + str(sntime) + ", TYPE: " + str(hex(m_type).upper().replace('X', 'x')) + ", VALUE: " + str(m_value) + ", SREG : " + str(hex(sreg).upper().replace('X', 'x')))
             
             # Check if this sender already sent a message (noted by its "timestamp")
             if snid in sender:
                 # Check if current "sntime" is previous one plus one
                 if (sender[snid]+1) != sntime:
                     # Log warning
-                    warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- SNID mismatch: had " + str(sender[snid]) + " and got " + str(sntime) + "\n")
+                    logging.warning("SNID mismatch for %s: had %d and got %d",src,sender[snid],sntime)
             # Update/add current "sntime" to the dictionary
             sender[snid] = sntime
             
@@ -277,16 +250,16 @@ while (terminate != 1):
                     db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, m_type, m_value, sreg, ""))
                     # Commit data to the DB
                     db_con.commit()
-                except:
+                except Exception as e:
                     # So far it's only a warning
-                    warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Problem writing to DB \"" + sys.exc_info()[0] + "\"\n")
+                    logging.warning("Problem writing to the DB", exc_info=True)
                     # Try to re-connect
                     if db_con.is_connected():
                         db_cur.close()
                         db_con.close()
                 else:
                     # Log successful DB write
-                    note_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Added new data to DB with row_id=" + str(db_cur.lastrowid) + "\n")
+                    logging.info("Added new data to DB with row_id=%d",db_cur.lastrowid)
                     # Continue with next message
                     continue
             
@@ -295,7 +268,7 @@ while (terminate != 1):
             db_con = None
             db_cur = None
             # Log incident
-            warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Lost connection to the DB\n")
+            logging.warning("Lost connection to the DB")
             
             
             ##### STAGE 3.2 #####
@@ -311,33 +284,23 @@ while (terminate != 1):
                         # Close the xbee connection
                         xbee.close()
                     # That's a big problem
-                    error_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not re-connect to DB at all!\n")
-                    # Check if log files are still open
-                    if error_f.closed:
-                        # Close log file
-                        error_f.close()
-                    if warning_f.closed:
-                        # Close log file
-                        warning_f.close()
-                    if note_f.closed:
-                        # Close log file
-                        note_f.close()
+                    logging.error("Could not re-connect to DB at all!")
                     # Terminate
                     sys.exit()
                 # Try to open a connection to DB
                 try:
                     # Open a connection to the MySQL database
                     db_con = mysql.connector.connect(host=DB_CON_HOST, user=DB_CON_USER, password=DB_CON_PASS, database=DB_CON_BASE)
-                except:
+                except Exception as e:
                     # So far it's only a warning
-                    warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not re-connect to the DB (try " + str(cnt_D+1) + "/" + str(TIMEOUT_D) + ") \"" + sys.exc_info()[0] + "\"\n")
+                    logging.warning("Could not re-connect to the DB (try %d / %d)",(cnt_D+1),TIMEOUT_D, exc_info=True)
                     # Wait some time (DELAY_D)
                     sleep(DELAY_D)
                 else:
                     # Check if DB is really connected
                     if db_con.is_connected():
                         # Log message (note)
-                        note_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Re-connected to the DB!\n")
+                        logging.info("Re-connected to the DB!")
                         # Get an cursor for the DB
                         db_cur = db_con.cursor()
                         # Set connection status to 1
@@ -350,27 +313,27 @@ while (terminate != 1):
                             db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, m_type, m_value, sreg, ""))
                             # Commit data to the DB
                             db_con.commit()
-                        except:
+                        except Exception as e:
                             # So far it's only a warning
-                            warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Problem writing to DB \"" + sys.exc_info()[0] + "\"\n")
+                            logging.warning("Problem writing to DB", exc_info=True)
                             # Try to re-connect
                             if db_con.is_connected():
                                 db_cur.close()
                                 db_con.close()
                         else:
                             # Log successful DB write
-                            note_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Added new data to DB with row_id=" + str(db_cur.lastrowid) + "\n")
+                            logging.info("Added new data to DB with row_id=%d",db_cur.lastrowid)
                             # Continue with next message
                             continue
                     else:
                         # So far it's only a warning
-                        warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not re-connect to the DB (try " + str(cnt_B+1) + "/" + str(TIMEOUT_B) + ") \"" + sys.exc_info()[0] + "\"\n")
+                        logging.warning("Could not re-connect to the DB (try %d / %d)",(cnt_B+1),TIMEOUT_B)
                         # Wait some time (DELAY_D)
                         sleep(DELAY_D)
         else:
             # Log erroneous message
-            warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Got a message from " + str(src) + " with a wrong format at " + str(tstamp.strftime('%Y-%m-%d %H:%M:%S')))
-            warning_f.write("                    -> PAYLOAD: \"" + str(bytes(msg.data).hex().upper()) + "\" (" + str(m_size) + " bytes)")
+            logging.warning("Got a message from %s with a wrong format at %s (UTC)",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'))
+            logging.warning("-> PAYLOAD: %s (%d bytes)",bytes(msg.data).hex().upper(),m_size)
     else:
         # Check if the xbee connection is still alive
         if xbee is not None and xbee.is_open():
@@ -381,7 +344,7 @@ while (terminate != 1):
             xbee_connect = 0
             xbee = None
             # Log incident
-            warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Lost connection to xbee\n")
+            logging.warning("Lost connection to xbee")
             
             ##### STAGE 3.1 #####
             #
@@ -392,22 +355,12 @@ while (terminate != 1):
                 # Check if timeout has been reached
                 if (cnt_C >= TIMEOUT_C):
                     # That's a big problem
-                    error_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not re-connect to xbee device at all!\n")
+                    logging.error("Could not re-connect to xbee device!")
                     # Check if DB connection is open
                     if db_con.is_connected():
                         # Close connection
                         db_cur.close()
                         db_con.close()
-                    # Check if log files are still open
-                    if error_f.closed:
-                        # Close log file
-                        error_f.close()
-                    if warning_f.closed:
-                        # Close log file
-                        warning_f.close()
-                    if note_f.closed:
-                        # Close log file
-                        note_f.close()
                     # Terminate
                     sys.exit()
                 # Try to open a connection to xbee
@@ -416,23 +369,23 @@ while (terminate != 1):
                     xbee = XBeeDevice(XBEE_SERIAL_DEV, 9600)
                     # Open the connection with the device
                     xbee.open()
-                except:
+                except Exception as e:
                     # So far it's only a warning
-                    warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not re-connect to xbee device (try " + str(cnt_C+1) + "/" + str(TIMEOUT_C) + ") \"" + sys.exc_info()[0] + "\"\n")
+                    logging.warning("Could not re-connect to xbee device (try %d / %d)",(cnt_C+1),TIMEOUT_C, exc_info=True)
                     # Wait some time (DELAY_C)
                     sleep(DELAY_C)
                 else:
                     # Check if really connected
                     if xbee is not None and xbee.is_open():
                         # Log message (note)
-                        note_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Re-connected to xbee module!\n")
+                        logging.info("Re-connected to xbee module!")
                         # Set connection status to 1
                         xbee_connect = 1
                         # Reset timeout counter
                         cnt_C = 0
                     else:
                         # So far it's only a warning
-                        warning_f.write(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " -- Could not re-connect to xbee device (try " + str(cnt_C+1) + "/" + str(TIMEOUT_C) + ") \"" + sys.exc_info()[0] + "\"\n")
+                        logging.warning("Could not re-connect to xbee device (try %d / %d)",(cnt_C+1),TIMEOUT_C)
                         # Wait some time (DELAY_C)
                         sleep(DELAY_C)
 
@@ -452,17 +405,4 @@ if xbee is not None and xbee.is_open():
     xbee.close()
 
 # Write starting-message to log file
-error_f.write("=== TERMINATION - " + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " ===\n\n")
-warning_f.write("=== TERMINATION - " + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " ===\n\n")
-note_f.write("=== TERMINATION - " + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " ===\n\n")
-
-# Check if log files are still open
-if error_f.closed:
-    # Close log file
-    error_f.close()
-if warning_f.closed:
-    # Close log file
-    warning_f.close()
-if note_f.closed:
-    # Close log file
-    note_f.close()
+logging.info("===== TERMINATION =====\n\n\n")
