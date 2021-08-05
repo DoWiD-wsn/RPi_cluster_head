@@ -33,7 +33,7 @@ Additionally, links to further information are given.
             `python3 -m pip install digi-xbee`
         * Alternatively, you can get the source code of the library from [Github](https://github.com/digidotcom/xbee-python).
 
-However, if you use the Xbee for the first time and want to configure fresh modules, it is advisable to use Digi's [XCTU](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/xctu) tool (available for Windows, Linux, Mac).
+However, if you use the Xbee for the first time and want to configure fresh modules, it is advisable to use Digi's [XCTU](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/xctu) tool (available for Windows, Linux, Mac), see below.
 
 
 ## Program Execution
@@ -66,7 +66,55 @@ That's it ;)
 The Xbee3 is a powerful radio offering a wide range of functions.
 In addition to Zigbee, 802.15.4 and Digimesh support (selectable by writing the appropriate firmware), it also has a BLE interface (disabled by default).
 Using the BLE interface, you can configure the module using a smartphone in combination with the _Digi XBee Mobile_ app.
-However, if you use the Xbee for the first time and want to configure fresh modules, it is advisable to use Digi's [XCTU](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/xctu) tool (Windows, Linux, Mac).
+However, if you use the XBee for the first time and/or want to configure fresh modules, it is advisable to use Digi's [XCTU](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/xctu) tool on a PC (Windows, Linux, Mac).
+For that purpose, you will need to use a XBee to serial adapter such as the [Wavexhare XBee USB Adapter](https://www.waveshare.com/wiki/XBee_USB_Adapter).
+Alternatively, the configuration can also be done via the UART interface and AT commands.
+
+
+### Configuration for ASN(x) ###
+
+In the following, the basic configuration of the XBee 3 modules for the use with our ASN(x) sensor nodes is described.
+Depending on your application, requirements, etc. you may need to adapt certain parameters.
+The explanation of the particular parameters and example configurations can be found in the [XBee 3 User Manual](https://www.digi.com/resources/documentation/digidocs/pdfs/90001539.pdf).
+If you use the [XCTU](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/xctu) tool for the configuration, the parameters are grouped to categories; the same as we use below.
+Parameters not mentioned in the list below are left at their initial/default value.
+
+* **Networking**
+    * `CE` (_device role_)  
+        set to `1` (form network).
+    * `ID` (_extended PAN ID_)  
+        set to a defined address, e.g., `FEDCBA9876543210`.
+
+* **Discovery Options**
+    * `NI` (_node identifier_)  
+        you can set a user-defined name; we use `CH` for our cluster head.
+
+* **Sleep Settings**
+    * `SM` (_sleep mode_)  
+        leave the sleep mode at `0` (router/coordinator).
+
+* **Bluetooth Options**
+    * We use the BLE interface during development to have an easy access to the XBee's setting via the [Digi XBee mobile app](https://www.digi.com/products/embedded-systems/digi-xbee/digi-xbee-tools/digi-xbee-mobile-app).  
+        However, in the actual deployment, the BLE interface is deactivated to save energy and for security reasons.
+    * `BT` (_Bluetooth enable_)  
+        activate the BLE interface by setting this parameter to `1` (you will be asked to set a BLE password).
+    * `BI` (_Bluetooth identifier_)  
+        optionally, a user-defined BLE identifier can be set to easily identify the single XBees in the mobile app.  
+        We use `XBee CH` similar to the _NI_ described above.  
+        The prefix `XBee` is used to filter the available Bluetooth devices in the mobile app (i.e., only show Bluetooth devices whose identifier starts with `XBee`).
+
+* **API Configuration**
+    * `AP` (_API enable_)  
+        we use the XBee in API mode, therefore, set this parameter to `1` (API mode without escapes).
+
+* **UART Interface**
+    * We use a higher baud rate for faster communication with the UART interface (i.e., 115200 8N1).
+    * `BD` (_UART baud rate_)  
+        set to `7` (115200 b/s)
+    * `NB` (_UART parity_)  
+        set to `0` (no parity)
+    * `SB` (_UART stop bits_)  
+        set to `0` (one stop bit)
 
 
 ## Links ##
