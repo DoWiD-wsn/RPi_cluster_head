@@ -53,7 +53,7 @@ It can be easily installed with:
 To initially start the cluster head script, log into the RPi via SSH and start the terminal multiplexer with:  
     `tmux`  
 Then navigate to the directory where the script is located and start it in the usual manner, e.g., with:  
-    `./rpi_cluster_head.py`  
+    `python3 rpi_cluster_head.py`  
 You can safely close the SSH session now.
 
 Whenever you want to return to the session, just log into the RPi again via SSH and attach to the previous `tmux` session with:  
