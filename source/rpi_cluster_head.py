@@ -121,7 +121,7 @@ def fixed16_to_float(value, f_bits):
     return tmp
 
 
-##### MAIN #####
+##### MAIN #############################
 # Add CRTL-C callback (needed for program termination)
 signal.signal(signal.SIGINT, sigint_callback)
 
@@ -266,123 +266,128 @@ while (terminate != 1):
             ### SEN-MSG data ###
             # 0..1  -> Sensor Node "timestamp"
             sntime    = int.from_bytes(msg.data[0:2], byteorder='little', signed=False)
-            # 3     -> Number of measurements
+            # 2     -> Number of measurements
             ms_cnt    = int(msg.data[2])
             
             # Log received data
             logging.info("Got a message from %s at %s (UTC) with %d sensor values (%d bytes; sntime: %d)",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'),ms_cnt,m_size,sntime)
             
-            # Iterate over all packed sensor values
-            for i in range(ms_cnt):
-                # -> Measurement type
-                m_type = msg.data[(i*3)+3]
-                # -> Measurement value -> depends on m_type
-                m_value = int.from_bytes(msg.data[(i*3)+4:(i*3)+6], byteorder='little', signed=False)
-                # Check the given value
-                if m_type in MEAS_FLOAT:
-                    # Convert fixed point to floating point
-                    m_value = fixed16_to_float(m_value, 6)
-                # Check if valid data are received
-                if m_type != 0:
-                    # Insert data into DB
-                    if db_con.is_connected():
-                        try:
-                            # Try execute DB insert
-                            db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, m_type, m_value, ""))
-                            # Commit data to the DB
-                            db_con.commit()
-                        except Exception as e:
-                            # So far it's only a warning
-                            logging.warning("Problem writing to the DB", exc_info=False)
-                            # Try to re-connect
-                            if db_con.is_connected():
-                                db_cur.close()
-                                db_con.close()
-                                break
-                        else:
-                            # Log successful DB write
-                            logging.info("Added new data to DB with row_id=%d",db_cur.lastrowid)
-                    else:
-                        # Looks like we've lost the connection to the DB (or need a re-connect)
-                        db_connect = 0
-                        db_con = None
-                        db_cur = None
-                        # Log incident
-                        logging.warning("Lost connection to the DB")
-                        break
-            
-            # Check if this sender already sent a message (noted by its "timestamp")
-            if snid in sender:
-                # Check if current "sntime" is previous one plus one
-                if (sender[snid]+1) != sntime:
-                    # Log warning
-                    logging.warning("SNID mismatch for %s: had %d and got %d",src,sender[snid],sntime)
-            # Update/add current "sntime" to the dictionary
-            sender[snid] = sntime
-            
-            # Check if still connected to DB
-            if db_connect:
-                continue
-            
-            ##### STAGE 3.2 #####
-            #
-            # Re-connect to DB
-            while (db_connect != 1):
-                # Increment timeout counter D
-                cnt_D = cnt_D + 1
-                # Check if timeout has been reached
-                if (cnt_D >= TIMEOUT_D):
-                    # Check if the xbee connection is still alive
-                    if xbee is not None and xbee.is_open():
-                        # Close the xbee connection
-                        xbee.close()
-                    # That's a big problem
-                    logging.error("Could not re-connect to DB at all!")
-                    # Terminate
-                    sys.exit()
-                # Try to open a connection to DB
-                try:
-                    # Open a connection to the MySQL database
-                    db_con = mysql.connector.connect(host=DB_CON_HOST, user=DB_CON_USER, password=DB_CON_PASS, database=DB_CON_BASE)
-                except Exception as e:
-                    # So far it's only a warning
-                    logging.warning("Could not re-connect to the DB (try %d / %d)",(cnt_D+1),TIMEOUT_D, exc_info=False)
-                    # Wait some time (DELAY_D)
-                    sleep(DELAY_D)
-                else:
-                    # Check if DB is really connected
-                    if db_con.is_connected():
-                        # Log message (note)
-                        logging.warning("Re-connected to the DB!")
-                        # Get an cursor for the DB
-                        db_cur = db_con.cursor()
-                        # Set connection status to 1
-                        db_connect = 1
-                        # Reset timeout counter
-                        cnt_D = 0
+            # Check the received message size against number of measrements
+            if m_size != ((ms_cnt*3) + 3):
+                # Log warning
+                logging.warning("Message is smaller than it should be: have %d bytes, need %d bytes",m_size,((ms_cnt*3) + 3))
+            else:
+                # Iterate over all packed sensor values
+                for i in range(ms_cnt):
+                    # -> Measurement type
+                    m_type = msg.data[(i*3)+3]
+                    # -> Measurement value -> depends on m_type
+                    m_value = int.from_bytes(msg.data[(i*3)+4:(i*3)+6], byteorder='little', signed=False)
+                    # Check the given value
+                    if m_type in MEAS_FLOAT:
+                        # Convert fixed point to floating point
+                        m_value = fixed16_to_float(m_value, 6)
+                    # Check if valid data are received
+                    if m_type != 0:
                         # Insert data into DB
-                        try:
-                            # Try execute DB insert
-                            db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, m_type, m_value, sreg, ""))
-                            # Commit data to the DB
-                            db_con.commit()
-                        except Exception as e:
-                            # So far it's only a warning
-                            logging.warning("Problem writing to DB", exc_info=False)
-                            # Try to re-connect
-                            if db_con.is_connected():
-                                db_cur.close()
-                                db_con.close()
+                        if db_con.is_connected():
+                            try:
+                                # Try execute DB insert
+                                db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, m_type, m_value, ""))
+                                # Commit data to the DB
+                                db_con.commit()
+                            except Exception as e:
+                                # So far it's only a warning
+                                logging.warning("Problem writing to the DB", exc_info=False)
+                                # Try to re-connect
+                                if db_con.is_connected():
+                                    db_cur.close()
+                                    db_con.close()
+                                    break
+                            else:
+                                # Log successful DB write
+                                logging.info("Added new data to DB with row_id=%d",db_cur.lastrowid)
                         else:
-                            # Log successful DB write
-                            logging.info("Added new data to DB with row_id=%d",db_cur.lastrowid)
-                            # Continue with next message
-                            continue
-                    else:
+                            # Looks like we've lost the connection to the DB (or need a re-connect)
+                            db_connect = 0
+                            db_con = None
+                            db_cur = None
+                            # Log incident
+                            logging.warning("Lost connection to the DB")
+                            break
+                
+                # Check if this sender already sent a message (noted by its "timestamp")
+                if snid in sender:
+                    # Check if current "sntime" is previous one plus one
+                    if (sender[snid]+1) != sntime:
+                        # Log warning
+                        logging.warning("SNID mismatch for %s: had %d and got %d",src,sender[snid],sntime)
+                # Update/add current "sntime" to the dictionary
+                sender[snid] = sntime
+                
+                # Check if still connected to DB
+                if db_connect:
+                    continue
+                
+                ##### STAGE 3.2 #####
+                #
+                # Re-connect to DB
+                while (db_connect != 1):
+                    # Increment timeout counter D
+                    cnt_D = cnt_D + 1
+                    # Check if timeout has been reached
+                    if (cnt_D >= TIMEOUT_D):
+                        # Check if the xbee connection is still alive
+                        if xbee is not None and xbee.is_open():
+                            # Close the xbee connection
+                            xbee.close()
+                        # That's a big problem
+                        logging.error("Could not re-connect to DB at all!")
+                        # Terminate
+                        sys.exit()
+                    # Try to open a connection to DB
+                    try:
+                        # Open a connection to the MySQL database
+                        db_con = mysql.connector.connect(host=DB_CON_HOST, user=DB_CON_USER, password=DB_CON_PASS, database=DB_CON_BASE)
+                    except Exception as e:
                         # So far it's only a warning
-                        logging.warning("Could not re-connect to the DB (try %d / %d)",(cnt_B+1),TIMEOUT_B)
+                        logging.warning("Could not re-connect to the DB (try %d / %d)",(cnt_D+1),TIMEOUT_D, exc_info=False)
                         # Wait some time (DELAY_D)
                         sleep(DELAY_D)
+                    else:
+                        # Check if DB is really connected
+                        if db_con.is_connected():
+                            # Log message (note)
+                            logging.warning("Re-connected to the DB!")
+                            # Get an cursor for the DB
+                            db_cur = db_con.cursor()
+                            # Set connection status to 1
+                            db_connect = 1
+                            # Reset timeout counter
+                            cnt_D = 0
+                            # Insert data into DB
+                            try:
+                                # Try execute DB insert
+                                db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, m_type, m_value, sreg, ""))
+                                # Commit data to the DB
+                                db_con.commit()
+                            except Exception as e:
+                                # So far it's only a warning
+                                logging.warning("Problem writing to DB", exc_info=False)
+                                # Try to re-connect
+                                if db_con.is_connected():
+                                    db_cur.close()
+                                    db_con.close()
+                            else:
+                                # Log successful DB write
+                                logging.info("Added new data to DB with row_id=%d",db_cur.lastrowid)
+                                # Continue with next message
+                                continue
+                        else:
+                            # So far it's only a warning
+                            logging.warning("Could not re-connect to the DB (try %d / %d)",(cnt_B+1),TIMEOUT_B)
+                            # Wait some time (DELAY_D)
+                            sleep(DELAY_D)
         else:
             # Log erroneous message
             logging.warning("Got a message from %s with a wrong format at %s (UTC)",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'))
