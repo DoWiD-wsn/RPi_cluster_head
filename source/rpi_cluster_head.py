@@ -46,23 +46,22 @@ from digi.xbee.models.address import XBee64BitAddress
 XBEE_SERIAL_DEV     = "/dev/ttyUSB0"
 
 # database connection details (adapt if necessary!)
-DB_CON_HOST         = "10.0.0.xx"
-DB_CON_USER         = "USER"
-DB_CON_PASS         = "PASS"
+DB_CON_HOST         = "10.0.0.43"
+DB_CON_USER         = "mywsn"
+DB_CON_PASS         = "$MyWSNdemo$"
 DB_CON_BASE         = "wsn_testbed"
 # database insert template
 DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, type, value, notes) VALUES (%s, %s, %s, %s, %s, %s)")
 
 ### logging level
 # DEBUG -> INFO -> WARNING -> ERROR -> CRITICAL
-LOG_LEVEL           = logging.INFO
+LOG_LEVEL           = logging.WARNING
 LOG_FILE            = "cluster_head.log"
 
 ### measurement types (integer vs. fixed-point)
 MEAS_UINT = {
       0: 'SEN_MSG_TYPE_IGNORE',
       1: 'SEN_MSG_TYPE_INCIDENTS',
-      2: 'SEN_MSG_TYPE_REBOOT',
      48: 'SEN_MSG_TYPE_LUMI_RES',
     240: 'SEN_MSG_TYPE_CHK_RES',
     241: 'SEN_MSG_TYPE_CHK_ADC',
@@ -70,6 +69,7 @@ MEAS_UINT = {
     243: 'SEN_MSG_TYPE_CHK_RUNTIME'
 }
 MEAS_FLOAT = {
+      2: 'SEN_MSG_TYPE_REBOOT',
      16: 'SEN_MSG_TYPE_TEMP_RES',
      17: 'SEN_MSG_TYPE_TEMP_AIR',
      18: 'SEN_MSG_TYPE_TEMP_SOIL',
