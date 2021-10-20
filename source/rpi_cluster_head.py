@@ -7,7 +7,7 @@
 # received and stores the data of correct messages in a remote database.
 # Additionally, specified information is written into a log file.
 #
-# This is the version used in the decentralized DCA WSN testbed.
+# This is the version used in the centralized DCA WSN testbed.
 #
 # @file     rpi_cluster_head.py
 # @author   Dominik Widhalm
