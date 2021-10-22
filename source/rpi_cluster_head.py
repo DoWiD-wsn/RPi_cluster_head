@@ -80,7 +80,18 @@ def sigint_callback(sig, frame):
     # Set terminate to 1
     terminate = 1
 
+
 ##### FUNCTIONS ########################
+def fixed8_to_float(value, f_bits):
+    # Convert fixed8 to float
+    tmp = (float(value & 0x7F) / float(1 << f_bits))
+    # Check sign of input
+    if(value & 0x80):
+        tmp *= -1
+    # Return the float value
+    return tmp
+
+
 def fixed16_to_float(value, f_bits):
     # Convert fixed16 to float
     tmp = (float(value & 0x7FFF) / float(1 << f_bits))
@@ -231,8 +242,8 @@ while (terminate != 1):
         # Payload length
         m_size = len(msg.data)
         
-        # Check message payload size (should be 26 bytes)
-        if m_size == 26:
+        # Check message payload size (should be 18 bytes)
+        if m_size == 18:
             ### SEN-MSG data ###
             # 0..1  -> Sensor Node "timestamp"
             sntime    = int.from_bytes(msg.data[0:2], byteorder='little', signed=False)
@@ -247,14 +258,14 @@ while (terminate != 1):
             h_soil  = fixed16_to_float(int.from_bytes(msg.data[8:10],  byteorder='little', signed=False), 6)
             
             # -> Fault indicator
-            x_nt    = fixed16_to_float(int.from_bytes(msg.data[10:12], byteorder='little', signed=False), 6)
-            x_vs    = fixed16_to_float(int.from_bytes(msg.data[12:14], byteorder='little', signed=False), 6)
-            x_bat   = fixed16_to_float(int.from_bytes(msg.data[14:16], byteorder='little', signed=False), 6)
-            x_art   = fixed16_to_float(int.from_bytes(msg.data[16:18], byteorder='little', signed=False), 6)
-            x_rst   = fixed16_to_float(int.from_bytes(msg.data[18:20], byteorder='little', signed=False), 6)
-            x_ic    = fixed16_to_float(int.from_bytes(msg.data[20:22], byteorder='little', signed=False), 6)
-            x_adc   = fixed16_to_float(int.from_bytes(msg.data[22:24], byteorder='little', signed=False), 6)
-            x_usart = fixed16_to_float(int.from_bytes(msg.data[24:26], byteorder='little', signed=False), 6)
+            x_nt    = fixed8_to_float(int.from_bytes(msg.data[10], byteorder='little', signed=False), 6)
+            x_vs    = fixed8_to_float(int.from_bytes(msg.data[11], byteorder='little', signed=False), 6)
+            x_bat   = fixed8_to_float(int.from_bytes(msg.data[12], byteorder='little', signed=False), 6)
+            x_art   = fixed8_to_float(int.from_bytes(msg.data[13], byteorder='little', signed=False), 6)
+            x_rst   = fixed8_to_float(int.from_bytes(msg.data[14], byteorder='little', signed=False), 6)
+            x_ic    = fixed8_to_float(int.from_bytes(msg.data[15], byteorder='little', signed=False), 6)
+            x_adc   = fixed8_to_float(int.from_bytes(msg.data[16], byteorder='little', signed=False), 6)
+            x_usart = fixed8_to_float(int.from_bytes(msg.data[17], byteorder='little', signed=False), 6)
             
             # Insert data into DB
             if db_con.is_connected():
