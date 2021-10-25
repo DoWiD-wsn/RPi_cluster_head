@@ -258,14 +258,14 @@ while (terminate != 1):
             h_soil  = fixed16_to_float(int.from_bytes(msg.data[8:10],  byteorder='little', signed=False), 6)
             
             # -> Fault indicator
-            x_nt    = fixed8_to_float(int.from_bytes(msg.data[10], byteorder='little', signed=False), 6)
-            x_vs    = fixed8_to_float(int.from_bytes(msg.data[11], byteorder='little', signed=False), 6)
-            x_bat   = fixed8_to_float(int.from_bytes(msg.data[12], byteorder='little', signed=False), 6)
-            x_art   = fixed8_to_float(int.from_bytes(msg.data[13], byteorder='little', signed=False), 6)
-            x_rst   = fixed8_to_float(int.from_bytes(msg.data[14], byteorder='little', signed=False), 6)
-            x_ic    = fixed8_to_float(int.from_bytes(msg.data[15], byteorder='little', signed=False), 6)
-            x_adc   = fixed8_to_float(int.from_bytes(msg.data[16], byteorder='little', signed=False), 6)
-            x_usart = fixed8_to_float(int.from_bytes(msg.data[17], byteorder='little', signed=False), 6)
+            x_nt    = fixed8_to_float(msg.data[10], 6)
+            x_vs    = fixed8_to_float(msg.data[11], 6)
+            x_bat   = fixed8_to_float(msg.data[12], 6)
+            x_art   = fixed8_to_float(msg.data[13], 6)
+            x_rst   = fixed8_to_float(msg.data[14], 6)
+            x_ic    = fixed8_to_float(msg.data[15], 6)
+            x_adc   = fixed8_to_float(msg.data[16], 6)
+            x_usart = fixed8_to_float(msg.data[17], 6)
             
             # Insert data into DB
             if db_con.is_connected():
