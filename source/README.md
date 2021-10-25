@@ -54,7 +54,7 @@ To initially start the cluster head script, log into the RPi via SSH and start t
     `tmux`  
 Then navigate to the directory where the script is located and start it in the usual manner, e.g., with:  
     `python3 rpi_cluster_head.py`  
-You can safely close the SSH session now.
+You can safely close the SSH session now, for example, by pressing `CTRL+b` and then type `d` for detach.
 
 Whenever you want to return to the session, just log into the RPi again via SSH and attach to the previous `tmux` session with:  
     `tmux attach`  
