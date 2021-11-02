@@ -35,6 +35,7 @@ import struct
 import logging
 # For sending emails
 import smtplib
+from email.mime.text import MIMEText
 # To connect to MySQL DB
 import mysql.connector
 from mysql.connector import errorcode
@@ -56,12 +57,12 @@ DB_CON_BASE         = "wsn_testbed"
 DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, t_air, t_soil, h_air, h_soil, x_nt, x_vs, x_bat, x_art, x_rst, x_ic, x_adc, x_usart) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
 
 # Email - SMTP
-EMAIL_RECEIVE       = ['info@wsn.com']
-EMAIL_USER          = my@mail.com
-EMAIL_PASS          = MyPassWord
-EMAIL_SERVER        = "smtp.mail.com"
+EMAIL_RECEIVE       = ['receiver@mail.com']
+EMAIL_USER          = 'sender@mail.com'
+EMAIL_PASS          = '$MyPassWord$'
+EMAIL_SERVER        = 'smtp.mail.com'
 EMAIL_PORT          = 587
-EMAIL_USE_SSL       = 1                     # otherwise use TLS
+EMAIL_USE_SSL       = 0                     # otherwise use TLS
 
 ### logging level
 # DEBUG -> INFO -> WARNING -> ERROR -> CRITICAL
@@ -81,7 +82,7 @@ DELAY_C             = 30                    # Delay C -- xbee re-connect
 DELAY_D             = 30                    # Delay D -- DB re-connect
 
 # sensor node update timeout [min]
-TIMEOUT_SN_UPDATE   = 30
+TIMEOUT_SN_UPDATE   = 5
 
 # Marker for callback whether program needs to terminate
 terminate = 0
@@ -121,14 +122,10 @@ def watchdog_expired(snid, time):
     # Log warning
     logging.warning("Sensor node \"%s\" did not send any update for at least %d minutes",snid,time)
     # Send email
-    email_text = """\
-    From: %s
-    To: %s
-    Subject: %s
-
-    Sensor node \"%s\" did not send any update for at least %d minutes
-    """ % (EMAIL_USER,", ".join(EMAIL_RECEIVE),"WSN Testbed: sensor node not working",snid,time)
-
+    msg = MIMEText('Sensor node \"%s\" did not send any update for at least %d minutes!' % (snid,time))
+    msg['Subject'] = 'WSN Testbed - sensor node not working'
+    msg['From'] = 'WSN TESTBED <dwidhalm@gmx.net>'
+    msg['To'] = 'widhalm@technikum-wien.at'
     try:
         if EMAIL_USE_SSL==1:
             smtp_server = smtplib.SMTP_SSL(EMAIL_SERVER, 587)
@@ -137,8 +134,8 @@ def watchdog_expired(snid, time):
         smtp_server.ehlo()
         if EMAIL_USE_SSL==0:
             smtp_server.starttls()
-        smtp_server.login(user, password)
-        smtp_server.sendmail(EMAIL_USER, EMAIL_RECEIVE, email_text)
+        smtp_server.login(EMAIL_USER, EMAIL_PASS)
+        smtp_server.sendmail(EMAIL_USER, EMAIL_RECEIVE, msg.as_string())
         smtp_server.close()
         logging.info("Email sent successfully!")
     except Exception as ex:
