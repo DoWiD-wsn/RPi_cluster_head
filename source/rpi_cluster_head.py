@@ -57,7 +57,7 @@ DB_CON_BASE         = "wsn_testbed"
 DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, t_air, t_soil, h_air, h_soil, x_nt, x_vs, x_bat, x_art, x_rst, x_ic, x_adc, x_usart) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
 
 # Email - SMTP
-EMAIL_RECEIVE       = ['receiver@mail.com']
+EMAIL_RECEIVE       = 'receiver@mail.com'
 EMAIL_USER          = 'sender@mail.com'
 EMAIL_PASS          = '$MyPassWord$'
 EMAIL_SERVER        = 'smtp.mail.com'
@@ -124,8 +124,8 @@ def watchdog_expired(snid, time):
     # Send email
     msg = MIMEText('Sensor node \"%s\" did not send any update for at least %d minutes!' % (snid,time))
     msg['Subject'] = 'WSN Testbed - sensor node not working'
-    msg['From'] = 'WSN TESTBED <dwidhalm@gmx.net>'
-    msg['To'] = 'widhalm@technikum-wien.at'
+    msg['From'] = 'WSN TESTBED <%s>' % EMAIL_USER
+    msg['To'] = EMAIL_RECEIVE
     try:
         if EMAIL_USE_SSL==1:
             smtp_server = smtplib.SMTP_SSL(EMAIL_SERVER, 587)
