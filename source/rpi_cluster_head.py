@@ -11,7 +11,7 @@
 #
 # @file     rpi_cluster_head.py
 # @author   Dominik Widhalm
-# @version  0.1.1
+# @version  0.1.2
 # @date     2021/11/02
 #####
 
@@ -33,6 +33,8 @@ from datetime import datetime
 import struct
 # For logging functionality
 import logging
+# For sending emails
+import smtplib
 # To connect to MySQL DB
 import mysql.connector
 from mysql.connector import errorcode
@@ -52,6 +54,14 @@ DB_CON_PASS         = "$MyWSNdemo$"
 DB_CON_BASE         = "wsn_testbed"
 # database insert template
 DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, t_air, t_soil, h_air, h_soil, x_nt, x_vs, x_bat, x_art, x_rst, x_ic, x_adc, x_usart) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
+
+# Email - SMTP
+EMAIL_RECEIVE       = ['info@wsn.com']
+EMAIL_USER          = my@mail.com
+EMAIL_PASS          = MyPassWord
+EMAIL_SERVER        = "smtp.mail.com"
+EMAIL_PORT          = 587
+EMAIL_USE_SSL       = 1                     # otherwise use TLS
 
 ### logging level
 # DEBUG -> INFO -> WARNING -> ERROR -> CRITICAL
@@ -110,6 +120,29 @@ def watchdog_expired(snid, time):
     global sndogs
     # Log warning
     logging.warning("Sensor node \"%s\" did not send any update for at least %d minutes",snid,time)
+    # Send email
+    email_text = """\
+    From: %s
+    To: %s
+    Subject: %s
+
+    Sensor node \"%s\" did not send any update for at least %d minutes
+    """ % (EMAIL_USER,", ".join(EMAIL_RECEIVE),"WSN Testbed: sensor node not working",snid,time)
+
+    try:
+        if EMAIL_USE_SSL==1:
+            smtp_server = smtplib.SMTP_SSL(EMAIL_SERVER, 587)
+        else:
+            smtp_server = smtplib.SMTP(EMAIL_SERVER, 587)
+        smtp_server.ehlo()
+        if EMAIL_USE_SSL==0:
+            smtp_server.starttls()
+        smtp_server.login(user, password)
+        smtp_server.sendmail(EMAIL_USER, EMAIL_RECEIVE, email_text)
+        smtp_server.close()
+        logging.info("Email sent successfully!")
+    except Exception as ex:
+        logging.warning("Could not send email!",ex)
     # Remove node from list (dict)
     del sender[snid]
     del sndogs[snid]
