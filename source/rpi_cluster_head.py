@@ -11,14 +11,16 @@
 #
 # @file     rpi_cluster_head.py
 # @author   Dominik Widhalm
-# @version  0.1.0
-# @date     2021/10/19
+# @version  0.1.1
+# @date     2021/11/02
 #####
 
 
 ##### LIBRARIES #####
 # Import the sleep function
 from time import sleep
+# For watchdog functionality
+from threading import Timer
 # For byte array hex output
 import binascii
 # To terminate the program in case of error
@@ -68,8 +70,30 @@ DELAY_B             = 10                    # Delay B -- DB initial connect
 DELAY_C             = 30                    # Delay C -- xbee re-connect
 DELAY_D             = 30                    # Delay D -- DB re-connect
 
+# sensor node update timeout [min]
+TIMEOUT_SN_UPDATE   = 30
+
 # Marker for callback whether program needs to terminate
 terminate = 0
+
+
+##### WATCHDOG CLASS #####
+# see https://stackoverflow.com/questions/16148735/how-to-implement-a-watchdog-timer-in-python
+class Watchdog:
+    # timeout in minutes
+    def __init__(self, timeout, handler=None):
+        self.timeout = timeout*60
+        self.handler = handler
+        self.timer = Timer(self.timeout, self.handler)
+        self.timer.start()
+
+    def reset(self):
+        self.timer.cancel()
+        self.timer = Timer(self.timeout, self.handler)
+        self.timer.start()
+
+    def stop(self):
+        self.timer.cancel()
 
 
 ##### CALLBACK #####
@@ -79,6 +103,16 @@ def sigint_callback(sig, frame):
     global terminate
     # Set terminate to 1
     terminate = 1
+
+# WATCHDOG CALLBACK
+def watchdog_expired(snid, time):
+    global sender
+    global sndogs
+    # Log warning
+    logging.warning("Sensor node \"%s\" did not send any update for at least %d minutes",snid,time)
+    # Remove node from list (dict)
+    del sender[snid]
+    del sndogs[snid]
 
 
 ##### FUNCTIONS ########################
@@ -127,6 +161,7 @@ xbee = None
 db_con = None
 db_cur = None
 sender = dict()
+sndogs = dict()
 
 
 ##### STAGE 1 #####
@@ -296,10 +331,14 @@ while (terminate != 1):
             
             # Check if this sender already sent a message (noted by its "timestamp")
             if snid in sender:
+                sndogs[snid].reset()
                 # Check if current "sntime" is previous one plus one
                 if (sender[snid]+1) != sntime:
                     # Log warning
                     logging.warning("SNID mismatch for %s: had %d and got %d",src,sender[snid],sntime)
+            else:
+                sndogs[snid] = Watchdog(TIMEOUT_SN_UPDATE, lambda snid=snid,time=2:watchdog_expired(snid,TIMEOUT_SN_UPDATE))
+                
             # Update/add current "sntime" to the dictionary
             sender[snid] = sntime
             
