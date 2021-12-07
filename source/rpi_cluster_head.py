@@ -1,22 +1,26 @@
 #####
-# @brief    Raspberry Pi-based cluster head
+# @brief    Raspberry Pi-based cluster head with dDCA fault detection
 #
-# Python script running on a raspberry pi to serve as a cluster head in
+# Python script running on a Raspberry Pi to serve as a cluster head in
 # a ZigBee-based wireless sensor network. The script connects serially
 # to an Xbee 3 module, continuously receives and evaluates messages
-# received and stores the data of correct messages in a remote database.
+# received. It then performs the modified dDCA to detect node faults.
+# The resulting fault label together with the use case and diagnostic
+# data are then stored in a remote database.
 # Additionally, specified information is written into a log file.
 #
 # This is the version used in the centralized DCA WSN testbed.
 #
 # @file     rpi_cluster_head.py
 # @author   Dominik Widhalm
-# @version  0.1.2
-# @date     2021/11/02
+# @version  0.1.3
+# @date     2021/12/07
 #####
 
 
 ##### LIBRARIES #####
+# Basic math
+import math
 # Import the sleep function
 from time import sleep
 # For watchdog functionality
@@ -45,16 +49,24 @@ from digi.xbee.models.address import XBee64BitAddress
 
 
 ##### GLOBAL VARIABLES #####
+### Modified dDCA ###
+# dendritic cell lifetime/population
+DC_M            = 3
+# number of sensor values for std-dev evaluation
+STDDEV_N        = 10
+# sensitivity of safe indicator
+SAFE_SENS       = 0.1
+
 # Path to the Xbee serial interface (adapt if necessary!)
 XBEE_SERIAL_DEV     = "/dev/ttyUSB0"
 
 # database connection details (adapt if necessary!)
-DB_CON_HOST         = "192.168.13.98"
-DB_CON_USER         = "mywsn"
-DB_CON_PASS         = "$MyWSNdemo$"
-DB_CON_BASE         = "wsn_testbed"
+DB_CON_HOST         = "xxx.xxx.xxx.xxx"
+DB_CON_USER         = "USER"
+DB_CON_PASS         = "PASSWORD"
+DB_CON_BASE         = "DATABASE"
 # database insert template
-DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, t_air, t_soil, h_air, h_soil, x_nt, x_vs, x_bat, x_art, x_rst, x_ic, x_adc, x_usart) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
+DB_INSERT_VALUE     = ("INSERT INTO sensordata (snid, sntime, dbtime, t_air, t_soil, h_air, h_soil, x_nt, x_vs, x_bat, x_art, x_rst, x_ic, x_adc, x_usart, label) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
 
 # Email - SMTP
 EMAIL_RECEIVE       = 'receiver@mail.com'
@@ -193,6 +205,13 @@ db_cur = None
 sender = dict()
 sndogs = dict()
 
+# dDCA related data
+t_air_history   = dict()
+t_soil_history  = dict()
+h_air_history   = dict()
+h_soil_history  = dict()
+dcs             = []
+
 
 ##### STAGE 1 #####
 #
@@ -309,19 +328,16 @@ while (terminate != 1):
         
         # Check message payload size (should be 18 bytes)
         if m_size == 18:
-            ### SEN-MSG data ###
+            ### Get use case data ###
             # 0..1  -> Sensor Node "timestamp"
             sntime    = int.from_bytes(msg.data[0:2], byteorder='little', signed=False)
-            
             # Log received data
             logging.info("Got a message from %s at %s (UTC) with %d bytes (sntime: %d)",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'),m_size,sntime)
-            
             # -> Use case data
             t_air   = fixed16_to_float(int.from_bytes(msg.data[2:4],   byteorder='little', signed=False), 6)
             t_soil  = fixed16_to_float(int.from_bytes(msg.data[4:6],   byteorder='little', signed=False), 6)
             h_air   = fixed16_to_float(int.from_bytes(msg.data[6:8],   byteorder='little', signed=False), 6)
             h_soil  = fixed16_to_float(int.from_bytes(msg.data[8:10],  byteorder='little', signed=False), 6)
-            
             # -> Fault indicator
             x_nt    = fixed8_to_float(msg.data[10], 6)
             x_vs    = fixed8_to_float(msg.data[11], 6)
@@ -332,11 +348,124 @@ while (terminate != 1):
             x_adc   = fixed8_to_float(msg.data[16], 6)
             x_usart = fixed8_to_float(msg.data[17], 6)
             
-            # Insert data into DB
+            ### Store last N sensor values ###
+            # Tair
+            if snid not in t_air_history:
+                # New node -> create empty list
+                t_air_history[snid] = []
+            t_air_history[snid].append(t_air)
+            if len(t_air_history[snid])>STDDEV_N:
+                t_air_history[snid].pop(0)
+            # Tsoil
+            if snid not in t_soil_history:
+                # New node -> create empty list
+                t_soil_history[snid] = []
+            t_soil_history[snid].append(t_soil)
+            if len(t_soil_history[snid])>STDDEV_N:
+                t_soil_history[snid].pop(0)
+            # Hair
+            if snid not in h_air_history:
+                # New node -> create empty list
+                h_air_history[snid] = []
+            h_air_history[snid].append(h_air)
+            if len(h_air_history[snid])>STDDEV_N:
+                h_air_history[snid].pop(0)
+            # Hsoil
+            if snid not in h_soil_history:
+                # New node -> create empty list
+                h_soil_history[snid] = []
+            h_soil_history[snid].append(h_soil)
+            if len(h_soil_history[snid])>STDDEV_N:
+                h_soil_history[snid].pop(0)
+            
+            ### Update dDCA indicators ###
+            # Store antigen
+            antigen = snid
+            # Calculate danger indicator
+            danger = min(1, (x_nt + x_vs + x_bat + x_art + x_rst + x_ic + x_adc + x_usart))
+            # Safe1 - T_air relative difference
+            safe1_mu = 0
+            for val in t_air_history[snid]:
+                safe1_mu = safe1_mu + val
+            safe1_mu = safe1_mu / len(t_air_history[snid])
+            safe1_dev = 0
+            for val in t_air_history[snid]:
+                safe1_dev = safe1_dev + ((val-safe1_mu)**2)
+            safe1_dev = safe1_dev / len(t_air_history[snid])
+            safe1_dev = math.sqrt(safe1_dev)
+            # Safe2 - T_soil relative difference
+            safe2_mu = 0
+            for val in t_soil_history[snid]:
+                safe2_mu = safe2_mu + val
+            safe2_mu = safe2_mu / len(t_soil_history[snid])
+            safe2_dev = 0
+            for val in t_soil_history[snid]:
+                safe2_dev = safe2_dev + ((val-safe2_mu)**2)
+            safe2_dev = safe2_dev / len(t_soil_history[snid])
+            safe2_dev = math.sqrt(safe2_dev)
+            # Safe3 - H_air relative difference
+            safe3_mu = 0
+            for val in h_air_history[snid]:
+                safe3_mu = safe3_mu + val
+            safe3_mu = safe3_mu / len(h_air_history[snid])
+            safe3_dev = 0
+            for val in h_air_history[snid]:
+                safe3_dev = safe3_dev + ((val-safe3_mu)**2)
+            safe3_dev = safe3_dev / len(h_air_history[snid])
+            safe3_dev = math.sqrt(safe3_dev)
+            # Safe4 - H_soil relative difference
+            safe4_mu = 0
+            for val in h_soil_history[snid]:
+                safe4_mu = safe4_mu + val
+            safe4_mu = safe4_mu / len(h_soil_history[snid])
+            safe4_dev = 0
+            for val in h_soil_history[snid]:
+                safe4_dev = safe4_dev + ((val-safe4_mu)**2)
+            safe4_dev = safe4_dev / len(h_soil_history[snid])
+            safe4_dev = math.sqrt(safe4_dev)
+            # Calculate final safe indicator
+            safe  = math.exp(-max(safe1_dev, safe2_dev, safe3_dev, safe4_dev)*SAFE_SENS)
+            
+            ### Dendritic cell update ###
+            context = danger - safe
+            # Create new DC
+            dcs.append({
+                "antigen"   : antigen,
+                "context"   : 0,
+            })
+            # Update previous DCs and count number of cells for this antigen
+            num_cells = 0
+            for dc in dcs:
+                # Check if cell's antigen matches current antigen
+                if dc["antigen"] == antigen:
+                    # Update context value
+                    dc["context"] = dc["context"] + context
+                    # Increase number of cells for this antigen
+                    num_cells += 1
+            # If population is full, delete oldest DC with given antigen
+            if num_cells>DC_M:
+                for i in range(len(dcs)):
+                    if dcs[i]["antigen"] == antigen:
+                        dcs.pop(i)
+                        break
+            
+            ### dDCA context assignment ###
+            state = 0
+            num_cells = 0
+            for dc in dcs:
+                # Check if cell's antigen matches current antigen
+                if dc["antigen"] == antigen:
+                    state = state + 1 if dc["context"]>=0 else state
+                    # Increase number of cells for this antigen
+                    num_cells += 1
+            state = state/num_cells
+            label = 1 if state>0.5 else 0
+            
+            ### Insert data into DB ##
             if db_con.is_connected():
                 try:
                     # Try execute DB insert
-                    db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, t_air, t_soil, h_air, h_soil, x_nt, x_vs, x_bat, x_art, x_rst, x_ic, x_adc, x_usart))
+                    db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, t_air, t_soil, h_air, h_soil, x_nt, x_vs, x_bat, x_art, x_rst, x_ic, x_adc, x_usart, label))
                     # Commit data to the DB
                     db_con.commit()
                 except Exception as e:
