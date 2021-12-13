@@ -26,6 +26,36 @@
        orient="auto"
        refY="0"
        refX="0"
+       id="marker3107"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         inkscape:connector-curvature="0"
+         id="path3105"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="matrix(-0.4,0,0,-0.4,-4,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Mend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker2435"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         inkscape:connector-curvature="0"
+         id="path2433"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="matrix(-0.4,0,0,-0.4,-4,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Mend"
+       orient="auto"
+       refY="0"
+       refX="0"
        id="marker39675"
        style="overflow:visible"
        inkscape:isstock="true">
@@ -137,7 +167,8 @@
        refX="0"
        refY="0"
        orient="auto"
-       inkscape:stockid="Arrow1Mend">
+       inkscape:stockid="Arrow1Mend"
+       inkscape:collect="always">
       <path
          transform="matrix(-0.4,0,0,-0.4,-4,0)"
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
@@ -1118,7 +1149,8 @@
        refX="0"
        refY="0"
        orient="auto"
-       inkscape:stockid="Arrow1Mend">
+       inkscape:stockid="Arrow1Mend"
+       inkscape:collect="always">
       <path
          transform="matrix(-0.4,0,0,-0.4,-4,0)"
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
@@ -1385,15 +1417,15 @@
      borderopacity="1.0"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.54099824"
-     inkscape:cx="308.82247"
-     inkscape:cy="343.81186"
+     inkscape:zoom="0.76508705"
+     inkscape:cx="797.71136"
+     inkscape:cy="304.94942"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="1920"
      inkscape:window-height="1016"
-     inkscape:window-x="0"
+     inkscape:window-x="1920"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:snap-bbox="true"
@@ -1419,7 +1451,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -2165,8 +2197,8 @@
        id="path14115"
        inkscape:connector-curvature="0" />
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.49999991;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="M 311.96113,42.313254 H 200.2113"
+       style="fill:none;stroke:#000000;stroke-width:0.49999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 270.96129,42.313252 H 200.21128"
        id="path14343"
        inkscape:connector-curvature="0" />
     <path
@@ -2435,28 +2467,6 @@
        d="m 317.21098,90.562891 h 24.75"
        id="path13479"
        inkscape:connector-curvature="0" />
-    <g
-       id="g13643"
-       transform="translate(275.46096,-41.186742)">
-      <rect
-         y="80.75"
-         x="75.250008"
-         height="5.5"
-         width="29.5"
-         id="rect13637"
-         style="opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none" />
-      <text
-         id="text13641"
-         y="84.500481"
-         x="89.978867"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222223px;line-height:1.25;font-family:FreeSans;-inkscape-font-specification:FreeSans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-         xml:space="preserve"><tspan
-           style="font-size:2.82222223px;text-align:center;text-anchor:middle;stroke-width:0.26458332"
-           y="84.500481"
-           x="89.978867"
-           id="tspan13639"
-           sodipodi:role="line">store data in DB</tspan></text>
-    </g>
     <text
        id="text13658"
        y="59.614994"
@@ -2733,28 +2743,6 @@
            sodipodi:role="line">reset timeout D</tspan></text>
     </g>
     <g
-       transform="translate(236.46113,-41.186742)"
-       id="g15190">
-      <rect
-         style="opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
-         id="rect15184"
-         width="29.5"
-         height="5.5"
-         x="75.250008"
-         y="80.75" />
-      <text
-         xml:space="preserve"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222223px;line-height:1.25;font-family:FreeSans;-inkscape-font-specification:FreeSans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-         x="89.978867"
-         y="84.500481"
-         id="text15188"><tspan
-           sodipodi:role="line"
-           id="tspan15186"
-           x="89.978867"
-           y="84.500481"
-           style="font-size:2.82222223px;text-align:center;text-anchor:middle;stroke-width:0.26458332">log NOTE</tspan></text>
-    </g>
-    <g
        transform="translate(110.4613,29.063083)"
        id="g8904">
       <rect
@@ -3002,10 +2990,54 @@
        d="m 389.9608,42.313256 h -9.01449"
        id="path33925"
        inkscape:connector-curvature="0" />
+    <g
+       id="g13643"
+       transform="translate(234.96113,-41.186742)">
+      <rect
+         y="80.75"
+         x="75.250008"
+         height="5.5"
+         width="29.5"
+         id="rect13637"
+         style="opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none" />
+      <text
+         id="text13641"
+         y="84.500481"
+         x="89.978867"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222223px;line-height:1.25;font-family:FreeSans;-inkscape-font-specification:FreeSans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+         xml:space="preserve"><tspan
+           style="font-size:2.82222223px;text-align:center;text-anchor:middle;stroke-width:0.26458332"
+           y="84.500481"
+           x="89.978867"
+           id="tspan13639"
+           sodipodi:role="line">store data in DB</tspan></text>
+    </g>
+    <g
+       transform="translate(195.9613,-41.186742)"
+       id="g15190">
+      <rect
+         style="opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
+         id="rect15184"
+         width="29.5"
+         height="5.5"
+         x="75.250008"
+         y="80.75" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222223px;line-height:1.25;font-family:FreeSans;-inkscape-font-specification:FreeSans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+         x="89.978867"
+         y="84.500481"
+         id="text15188"><tspan
+           sodipodi:role="line"
+           id="tspan15186"
+           x="89.978867"
+           y="84.500481"
+           style="font-size:2.82222223px;text-align:center;text-anchor:middle;stroke-width:0.26458332">log NOTE</tspan></text>
+    </g>
     <path
        inkscape:connector-curvature="0"
        id="path34449"
-       d="m 350.96097,42.313256 h -9.01449"
+       d="m 310.46114,42.313256 h -9.01449"
        style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker34453)" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker34975)"
@@ -3172,5 +3204,31 @@
            id="tspan40517"
            sodipodi:role="line">SIGINT</tspan></text>
     </g>
+    <g
+       id="g3661">
+      <rect
+         style="opacity:1;vector-effect:none;fill:#808080;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
+         id="rect2405"
+         width="29.5"
+         height="5.5"
+         x="350.21097"
+         y="39.563259" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222223px;line-height:1.25;font-family:FreeSans;-inkscape-font-specification:FreeSans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+         x="364.93982"
+         y="43.31374"
+         id="text2409"><tspan
+           sodipodi:role="line"
+           id="tspan2407"
+           x="364.93982"
+           y="43.31374"
+           style="font-size:2.82222223px;text-align:center;text-anchor:middle;stroke-width:0.26458332">dDCA fault detection</tspan></text>
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker3107)"
+       d="m 349.96097,42.313256 h -9.01449"
+       id="path3103"
+       inkscape:connector-curvature="0" />
   </g>
 </svg>
