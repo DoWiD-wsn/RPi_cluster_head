@@ -56,10 +56,6 @@ parser.read("config.conf")
 ### Modified dDCA ###
 # dendritic cell lifetime/population
 DC_M            = 3
-# number of sensor values for std-dev evaluation
-STDDEV_N        = 10
-# sensitivity of safe indicator
-SAFE_SENS       = 0.1
 
 # Path to the Xbee serial interface (adapt if necessary!)
 XBEE_SERIAL_DEV     = "/dev/ttyUSB0"
@@ -70,10 +66,10 @@ DB_CON_USER         = parser.get("DB", "user")
 DB_CON_PASS         = parser.get("DB", "pass")
 DB_CON_BASE         = parser.get("DB", "base")
 # database insert template
-DB_INSERT_VALUE     = ("INSERT INTO sensordata_ftdca (snid, sntime, dbtime, t_air, t_soil, h_air, h_soil, soc, danger, safe, label) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
+DB_INSERT_VALUE     = ("INSERT INTO sensordata_ftdca (snid, sntime, dbtime, t_air, h_air, t_soil, h_soil, soc, danger, safe, label) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
 
 # Email - SMTP
-EMAIL_RECEIVE       = [parser.get("EMAIL", "receive")]
+EMAIL_RECEIVE       = parser.get("EMAIL", "receive")
 EMAIL_USER          = parser.get("EMAIL", "user")
 EMAIL_PASS          = parser.get("EMAIL", "pass")
 EMAIL_SERVER        = parser.get("EMAIL", "server")
@@ -98,7 +94,7 @@ DELAY_C             = 30                    # Delay C -- xbee re-connect
 DELAY_D             = 30                    # Delay D -- DB re-connect
 
 # sensor node update timeout [min]
-TIMEOUT_SN_UPDATE   = 5
+TIMEOUT_SN_UPDATE   = 30
 
 # Marker for callback whether program needs to terminate
 terminate = 0
@@ -339,8 +335,8 @@ while (terminate != 1):
             logging.info("Got a message from %s at %s (UTC) with %d bytes (sntime: %d)",src,tstamp.strftime('%Y-%m-%d %H:%M:%S'),m_size,sntime)
             # -> Use case data
             t_air   = fixed16_to_float(int.from_bytes(msg.data[2:4],   byteorder='little', signed=False), 6)
-            t_soil  = fixed16_to_float(int.from_bytes(msg.data[4:6],   byteorder='little', signed=False), 6)
-            h_air   = fixed16_to_float(int.from_bytes(msg.data[6:8],   byteorder='little', signed=False), 6)
+            h_air   = fixed16_to_float(int.from_bytes(msg.data[4:6],   byteorder='little', signed=False), 6)
+            t_soil  = fixed16_to_float(int.from_bytes(msg.data[6:8],   byteorder='little', signed=False), 6)
             h_soil  = fixed16_to_float(int.from_bytes(msg.data[8:10],  byteorder='little', signed=False), 6)
             # -> Battery SoC
             soc     = msg.data[10]
@@ -389,7 +385,7 @@ while (terminate != 1):
             if db_con.is_connected():
                 try:
                     # Try execute DB insert
-                    db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, t_air, t_soil, h_air, h_soil, soc, danger, safe, label))
+                    db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, t_air, h_air, t_soil, h_soil, soc, danger, safe, label))
                     # Commit data to the DB
                     db_con.commit()
                 except Exception as e:
@@ -468,7 +464,7 @@ while (terminate != 1):
                         # Insert data into DB
                         try:
                             # Try execute DB insert
-                            db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, t_air, t_soil, h_air, h_soil, soc, danger, safe, label))
+                            db_cur.execute(DB_INSERT_VALUE, (snid, sntime, tstamp, t_air, h_air, t_soil, h_soil, soc, danger, safe, label))
                             # Commit data to the DB
                             db_con.commit()
                         except Exception as e:
